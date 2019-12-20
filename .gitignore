@@ -1,0 +1,10 @@
+target
+test-output/
+.sbtopts
+project/.sbt
+test-output/
+.bloop
+.metals
+.idea
+coursier
+.DS_Store
