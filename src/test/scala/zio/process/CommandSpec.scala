@@ -23,6 +23,9 @@ object CommandSpec
 
           assertM(zio, equalTo(List("1", "2", "3")))
         },
+        testM("stream lines of output") {
+          assertM(Command.of("echo", "-n", "1\n2\n3").linesStream.runCollect, equalTo(List("1", "2", "3")))
+        },
         testM("work with stream directly") {
           val zio = for {
             stream <- Command.of("echo", "-n", "1\n2\n3").stream

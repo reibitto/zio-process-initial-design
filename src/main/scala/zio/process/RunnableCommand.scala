@@ -4,7 +4,7 @@ import java.nio.charset.Charset
 
 import zio.RIO
 import zio.blocking.Blocking
-import zio.stream.StreamChunk
+import zio.stream.{ StreamChunk, ZStream }
 
 trait RunnableCommand {
   def run: RIO[Blocking, Process]
@@ -23,6 +23,9 @@ trait RunnableCommand {
 
   def lines(charset: Charset): RIO[Blocking, List[String]] =
     run.flatMap(_.lines(charset))
+
+  def linesStream: ZStream[Blocking, Throwable, String] =
+    ZStream.fromEffect(run).flatMap(_.linesStream)
 
   def stream: RIO[Blocking, StreamChunk[Throwable, Byte]] =
     run.map(_.stream)

@@ -5,7 +5,7 @@ import java.lang.{ Process => JProcess }
 import java.nio.charset.{ Charset, StandardCharsets }
 
 import zio.blocking._
-import zio.stream.{ Stream, StreamChunk }
+import zio.stream.{ Stream, StreamChunk, ZSink, ZStream }
 import zio.{ RIO, UIO }
 
 import scala.collection.mutable
@@ -50,6 +50,12 @@ case class Process(process: JProcess) {
 
       lines.toList
     }
+
+  def linesStream: ZStream[Blocking, Throwable, String] =
+    stream.chunks
+      .aggregate(ZSink.utf8DecodeChunk)
+      .aggregate(ZSink.splitLines)
+      .mapConcatChunk(identity)
 
   def stream: StreamChunk[Throwable, Byte] =
     Stream.fromInputStream(process.getInputStream)
