@@ -6,22 +6,20 @@ import java.nio.charset.{ Charset, StandardCharsets }
 import zio.Chunk
 import zio.stream.{ Stream, StreamChunk }
 
-trait ProcessInput {
-  def source: StreamChunk[Throwable, Byte]
-}
+final case class ProcessInput(source: Option[StreamChunk[Throwable, Byte]])
 
-case class StreamingInput(stream: StreamChunk[Throwable, Byte]) extends ProcessInput {
-  def source: StreamChunk[Throwable, Byte] = stream
-}
+object ProcessInput {
+  val inherit: ProcessInput = ProcessInput(None)
 
-case class StringInput(text: String, charset: Charset = StandardCharsets.UTF_8) extends ProcessInput {
-  def source: StreamChunk[Throwable, Byte] = StreamChunk.fromChunks(Chunk.fromArray(text.getBytes(charset)))
-}
+  def fromByteArray(bytes: Array[Byte]): ProcessInput =
+    ProcessInput(Some(Stream.fromInputStream(new ByteArrayInputStream(bytes))))
 
-case class ByteArrayInput(bytes: Array[Byte]) extends ProcessInput {
-  def source: StreamChunk[Throwable, Byte] = Stream.fromInputStream(new ByteArrayInputStream(bytes))
-}
+  def fromStreamChunk(stream: StreamChunk[Throwable, Byte]): ProcessInput =
+    ProcessInput(Some(stream))
 
-case object InheritInput extends ProcessInput {
-  def source: StreamChunk[Throwable, Byte] = StreamChunk.empty
+  def fromString(text: String, charset: Charset): ProcessInput =
+    ProcessInput(Some(StreamChunk.fromChunks(Chunk.fromArray(text.getBytes(charset)))))
+
+  def fromUTF8String(text: String): ProcessInput =
+    ProcessInput(Some(StreamChunk.fromChunks(Chunk.fromArray(text.getBytes(StandardCharsets.UTF_8)))))
 }

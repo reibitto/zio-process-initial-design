@@ -14,21 +14,21 @@ object CommandSpec
     extends DefaultRunnableSpec(
       suite("CommandSpec")(
         testM("convert stdout to string") {
-          val zio = Command.of("echo", "-n", "test").string
+          val zio = Command("echo", "-n", "test").string
 
           assertM(zio, equalTo("test"))
         },
         testM("convert stdout to list of lines") {
-          val zio = Command.of("echo", "-n", "1\n2\n3").lines
+          val zio = Command("echo", "-n", "1\n2\n3").lines
 
           assertM(zio, equalTo(List("1", "2", "3")))
         },
         testM("stream lines of output") {
-          assertM(Command.of("echo", "-n", "1\n2\n3").linesStream.runCollect, equalTo(List("1", "2", "3")))
+          assertM(Command("echo", "-n", "1\n2\n3").linesStream.runCollect, equalTo(List("1", "2", "3")))
         },
         testM("work with stream directly") {
           val zio = for {
-            stream <- Command.of("echo", "-n", "1\n2\n3").stream
+            stream <- Command("echo", "-n", "1\n2\n3").stream
             lines <- stream.chunks
                       .aggregate(ZSink.utf8DecodeChunk)
                       .aggregate(ZSink.splitLines)
@@ -39,42 +39,44 @@ object CommandSpec
           assertM(zio, equalTo(List("1", "2", "3")))
         },
         testM("fail trying to run a command that doesn't exit") {
-          val zio = Command.of("some-invalid-command", "test").string
+          val zio = Command("some-invalid-command", "test").string
 
           assertM(zio.run, fails(isSubtype[IOException](anything)))
         },
         testM("pass environment variables") {
-          val zio = Command.of("bash", "-c", "echo -n \"var = $VAR\"").env(Map("VAR" -> "value")).string
+          val zio = Command("bash", "-c", "echo -n \"var = $VAR\"").env(Map("VAR" -> "value")).string
 
           assertM(zio, equalTo("var = value"))
         },
         testM("accept streaming stdin") {
           val zio = for {
-            stream <- Command.of("echo", "-n", "a", "b", "c").stream
-            result <- Command.of("cat").stdin(StreamingInput(stream)).string
+            stream <- Command("echo", "-n", "a", "b", "c").stream
+            result <- Command("cat").stdin(ProcessInput.fromStreamChunk(stream)).string
           } yield result
 
           assertM(zio, equalTo("a b c"))
         },
         testM("accept string stdin") {
-          val zio = Command.of("cat").stdin(StringInput("piped in")).string
+          val zio = Command("cat").stdin(ProcessInput.fromUTF8String("piped in")).string
 
           assertM(zio, equalTo("piped in"))
         },
         testM("support different encodings") {
           val zio =
-            Command.of("cat").stdin(StringInput("piped in", StandardCharsets.UTF_16)).string(StandardCharsets.UTF_16)
+            Command("cat")
+              .stdin(ProcessInput.fromString("piped in", StandardCharsets.UTF_16))
+              .string(StandardCharsets.UTF_16)
 
           assertM(zio, equalTo("piped in"))
         },
         testM("set workingDirectory") {
-          val zio = Command.of("ls").workingDirectory(new File("src/main/scala/zio/process")).lines
+          val zio = Command("ls").workingDirectory(new File("src/main/scala/zio/process")).lines
 
           assertM(zio, contains("Command.scala"))
         },
         testM("interrupt a process manually") {
           val zio = for {
-            fiber  <- Command.of("sleep", "20").exitCode.fork
+            fiber  <- Command("sleep", "20").exitCode.fork
             _      <- fiber.interrupt.fork
             result <- fiber.join
           } yield result
@@ -83,7 +85,7 @@ object CommandSpec
         },
         testM("interrupt a process due to timeout") {
           val zio = for {
-            fiber  <- Command.of("sleep", "20").exitCode.timeout(5.seconds).fork
+            fiber  <- Command("sleep", "20").exitCode.timeout(5.seconds).fork
             _      <- TestClock.adjust(5.seconds)
             result <- fiber.join
           } yield result
