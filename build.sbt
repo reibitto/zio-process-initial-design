@@ -1,46 +1,35 @@
-name := "zio-process"
+import BuildHelper._
 
-version := "0.0.1"
-
-// TODO: Add cross build for other versions + platforms
-scalaVersion := "2.13.1"
-
-libraryDependencies ++= Seq(
-  "dev.zio" %% "zio"          % "1.0.0-RC17",
-  "dev.zio" %% "zio-streams"  % "1.0.0-RC17",
-  "dev.zio" %% "zio-test"     % "1.0.0-RC17" % Test,
-  "dev.zio" %% "zio-test-sbt" % "1.0.0-RC17" % Test
+inThisBuild(
+  List(
+    organization := "dev.zio",
+    homepage := Some(url("https://zio.dev")),
+    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    developers := List(Developer("jdegoes", "John De Goes", "john@degoes.net", url("http://degoes.net"))),
+    pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
+    pgpPublicRing := file("/tmp/public.asc"),
+    pgpSecretRing := file("/tmp/secret.asc"),
+    scmInfo := Some(
+      ScmInfo(url("https://github.com/zio/zio-process/"), "scm:git:git@github.com:zio/zio-process.git")
+    )
+  )
 )
 
-testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+ThisBuild / publishTo := sonatypePublishToBundle.value
 
-addCommandAlias("fmt", "all scalafmtSbt scalafmtAll")
-addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheckAll")
+addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
+addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
-//parallelExecution := false
-
-scalacOptions ++= Seq(
-  "-encoding",
-  "UTF-8",
-  "-Yrangepos",
-  "-unchecked",
-  "-deprecation",
-  "-feature",
-  "-language:postfixOps",
-  "-language:implicitConversions",
-  "-language:higherKinds",
-  "-Xfatal-warnings",
-  "-Ywarn-value-discard",
-  "-Xlint:infer-any",
-  "-Xlint:nullary-unit",
-  "-Xlint:nullary-override",
-  "-Xlint:inaccessible",
-  "-Xlint:missing-interpolator",
-  "-Xlint:doc-detached",
-  "-Xlint:private-shadow",
-  "-Xlint:type-parameter-shadow",
-  "-Xlint:delayedinit-select",
-  "-Xlint:stars-align",
-  "-Xlint:option-implicit",
-  "-Xlint:poly-implicit-overload"
-)
+lazy val `zio-process` = project
+  .in(file("."))
+  .settings(stdSettings("zio-process"))
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio"                %% "zio"                     % "1.0.0-RC17",
+      "dev.zio"                %% "zio-streams"             % "1.0.0-RC17",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3",
+      "dev.zio"                %% "zio-test"                % "1.0.0-RC17" % Test,
+      "dev.zio"                %% "zio-test-sbt"            % "1.0.0-RC17" % Test
+    ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  )
